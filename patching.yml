@@ -1,0 +1,7 @@
+---
+
+- hosts: kube_masters
+  become: yes
+
+  roles:
+    - role: roles/patching
