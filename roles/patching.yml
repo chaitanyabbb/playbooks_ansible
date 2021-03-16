@@ -1,7 +1,0 @@
----
-
-- hosts: kube_masters
-  become: yes
-
-  roles:
-    - role: patching
