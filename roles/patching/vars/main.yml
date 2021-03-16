@@ -1,5 +1,0 @@
----
-# vars file for patching
-
-root_mount: /
-boot_mount: /boot

@@ -1,6 +1,0 @@
----
-
-- hosts: kube_masters
-  become: yes
-  tasks:
-    - include: tasks/main.yml
