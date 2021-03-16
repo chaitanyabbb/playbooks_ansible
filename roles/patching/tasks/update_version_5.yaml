@@ -1,0 +1,86 @@
+---
+# Patching Playbook for OEL/ RHEL Major Version is 5
+
+
+
+- name: "Validating OS Major Version is {{ ansible_distribution }} - {{ ansible_distribution_major_version }}"
+  debug: msg="{{ ansible_distribution }} - {{ ansible_distribution_major_version }}"
+
+
+- name: "Email Pre-Checklist of Server to SysEng Team"
+  shell: curl -sL http://kickstart.mylab.local/index.sh | bash
+  args:
+    warn: false
+
+
+
+- name: "Stopping HTTPD if started"
+  service: name=httpd state=stopped
+
+
+- name: "Checking /boot mountpoint Usage"
+  shell: df "{{ item }}" | awk '{print $5}' | sed 's/%//'  | tail -1
+  register: boot_freespace
+  with_items: "{{ boot_mount }}"
+  changed_when: false
+
+
+
+- name: "Fail on /boot mount if above Threshold i.e 70%"
+  fail:
+    msg: "Mountpoint {{ item.item }} partition on {{ ansible_nodename }} is exceeding 70% Usage of Threshold"
+  when: item.stdout > "20"
+  loop: "{{ boot_freespace.results }}"
+  ignore_errors: true
+  register: boot_usage_failed
+
+
+
+- name: "Removing unwanted Files from /boot Directory"
+  shell: |
+    CURRENT_KERNEL=$(uname -r)
+    PREVIOUS_KERNEL=$(rpm -qa kernel kernel-uek | sort -nr | grep -v $CURRENT_KERNEL | sed 1d )
+
+    if [[ $LAST_KERNEL != $PREVIOUS_KERNEL ]]; then
+           yum remove $PREVIOUS_KERNEL -y
+    fi
+  register: yum_result
+  when: boot_usage_failed is failed
+
+
+
+- name: "kernel removed successfully from boot"
+  debug:
+    msg: "HOSTNAME: {{ inventory_hostname }} | yum remove passed , PLEASE CHECK THE SERVER"
+  when: yum_result is defined and yum_result is succeeded and yum_result.changed
+
+
+
+
+- name: "Checking / mountpoint Usage"
+  shell: df "{{ item }}" | awk '{print $5}' | sed 's/%//'  | tail -1
+  register: root_freespace
+  with_items: "{{ root_mount }}"
+  changed_when: false
+
+- name: "Fail on / mount if above Threshold i.e 80%"
+  fail:
+    msg: "Mountpoint {{ item.item }} partition on {{ ansible_nodename }} is exceeding 90% Usage of Threshold"
+  when: item.stdout > "80"
+  loop: "{{ root_freespace.results }}"
+
+
+
+
+
+- name: "Starting HTTPD if Stopped"
+  service: name=httpd state=started
+
+
+
+
+...
+
+
+
+

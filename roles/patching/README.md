@@ -1,7 +1,7 @@
 Role Name
 =========
 
-This Role is Used for Patching of Linux Based Servers.
+A brief description of the role goes here.
 
 Requirements
 ------------
@@ -35,4 +35,4 @@ BSD
 Author Information
 ------------------
 
-This is managed and created by Chaitanya Bhavsar
+An optional section for the role authors to include contact information, or a website (HTML is not allowed).

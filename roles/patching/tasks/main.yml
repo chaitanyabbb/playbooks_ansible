@@ -2,33 +2,28 @@
 # tasks file for patching
 
 
-- name: "Stopping HTTPD if started"
-  service: name=httpd state=stopped
+- include_tasks: update_version_{{ ansible_distribution_major_version }}.yaml
 
-- name: "Checking /boot mountpoint Usage"
-  shell: df "{{ item }}" | awk '{print $5}' | sed 's/%//'  | tail -1
-  register: boot_freespace
-  with_items: "{{ boot_mount }}"
-  changed_when: false
 
-- name: "Fail on /boot mount if above Threshold i.e 70%"
-  fail:
-    msg: "Mountpoint {{ item.item }} partition on {{ ansible_nodename }} is exceeding 70% Usage of Threshold"
-  when: item.stdout > "70"
-  loop: "{{ boot_freespace.results }}"
 
-- name: "Checking / mountpoint Usage"
-  shell: df "{{ item }}" | awk '{print $5}' | sed 's/%//'  | tail -1
-  register: root_freespace
-  with_items: "{{ root_mount }}"
-  changed_when: false
+#- name: Update OS RHEL/OEL 7 Version
+#  import_tasks: update_version_7.yaml
+#  when: ansible_distribution_major_version == "7"
 
-- name: "Fail on / mount if above Threshold i.e 90% "
-  fail:
-    msg: "Mountpoint {{ item.item }} partition on {{ ansible_nodename }} is exceeding 90% Usage of Threshold"
-  when: item.stdout > "90"
-  loop: "{{ root_freespace.results }}"
 
-- name: "Starting HTTPD if stopped     "
-  service: name=httpd state=started
+
+
+#- name: Update OS RHEL/OEL 6 Version
+#  import_tasks: update_version_6.yaml
+#  when: ansible_distribution_major_version == "6"
+
+
+
+
+#- name: Update OS RHEL/OEL 5 Version
+#  import_tasks: update_version_5.yaml
+#  when: ansible_distribution_major_version == "5"
+
+
+...
 
