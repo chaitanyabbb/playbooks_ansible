@@ -1,7 +1,0 @@
----
-
-- hosts: kube_masters
-  remote_user: root
-
-  roles:
-    - role: roles/patching
