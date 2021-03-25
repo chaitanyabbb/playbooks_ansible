@@ -39,12 +39,12 @@
 - name: "Removing unwanted Files from /boot Directory"
   shell: |
     CURRENT_KERNEL=$(uname -r)
-    PREVIOUS_KERNEL=$(rpm -qa kernel kernel-uek | sort -nr | grep -v $CURRENT_KERNEL | sed 1d )
+    PREVIOUS_KERNEL=$(rpm -qa kernel kernel-uek --last |  awk '{ print $1 }' | grep -v $CURRENT_KERNEL | sed 1d )
 
     if [[ $LAST_KERNEL != $PREVIOUS_KERNEL ]]; then
            yum remove $PREVIOUS_KERNEL -y
     fi
-  register: yum_result
+  register: yum_result_boot
   when: boot_usage_failed is failed
 
 
@@ -52,7 +52,7 @@
 - name: "kernel removed successfully from boot"
   debug:
     msg: "HOSTNAME: {{ inventory_hostname }} | yum remove passed , PLEASE CHECK THE SERVER"
-  when: yum_result is defined and yum_result is succeeded and yum_result.changed
+  when: yum_result_boot is defined and yum_result_boot is succeeded and yum_result_boot.changed
 
 
 
@@ -68,6 +68,56 @@
     msg: "Mountpoint {{ item.item }} partition on {{ ansible_nodename }} is exceeding 90% Usage of Threshold"
   when: item.stdout > "80"
   loop: "{{ root_freespace.results }}"
+
+
+
+
+- name: "Install Latest yum packages"
+  yum:
+    name: '*'
+    state: latest
+    exclude: kernel*,kernel-uek*
+  register: yum_result
+
+
+
+- name: "Yum Update Failed"
+  debug:
+    msg: "HOSTNAME: {{ inventory_hostname }} | yum update failed, PLEASE CHECK THE SERVER"
+  when: yum_result is defined and yum_result is failed
+
+
+- name: "Nothing to Update"
+  debug:
+    msg: "HOSTNAME: {{ inventory_hostname }} |  Nothing to update."
+  when: yum_result is defined and yum_result is succeeded and not yum_result.changed
+
+
+- name: "Yum Update Completed Successfully"
+  debug:
+    msg: "HOSTNAME: {{ inventory_hostname }} | yum update succeeded."
+  when: yum_result is defined and yum_result is succeeded and yum_result.changed
+
+- name: "Setting Kernel to default"
+  shell: |
+    kernel_env=$(uname -r | grep uek | wc -l)
+    if [ $kernel_env -eq 1 ]; then
+        CURRENT_KERNEL_UEK=$(uname -r)
+        LATEST_KERNEL_UEK=$(rpm -q kernel-uek  --last | awk '{print $1}' | head -n1 | cut -d "-" -f2,3 )
+        if [[ $LATEST_KERNEL_UEK != $CURRENT_KERNEL_UEK ]]; then
+                grubby --set-default /boot/vmlinuz-$LATEST_KERNEL_UEK >/dev/null 2>/dev/null
+        fi
+    else
+
+        CURRENT_KERNEL=$(uname -r)
+        LATEST_KERNEL=$(rpm -q kernel --last | awk '{print $1}' | head -n1 | cut -d "-" -f2,3 )
+
+        if [[ $LATEST_KERNEL != $CURRENT_KERNEL ]]; then
+                grubby --set-default /boot/vmlinuz-$LATEST_KERNEL >/dev/null 2>/dev/null
+        fi
+    fi
+  register: grubby_result
+  when: yum_result is defined and yum_result is succeeded and yum_result.changed
 
 
 
